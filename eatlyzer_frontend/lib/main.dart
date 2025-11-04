@@ -18,7 +18,9 @@ class MyApp extends StatelessWidget {
 
   // Warna utama kita
   static const Color primaryColor = Color(0xFF00B0FF); // Sky Blue
-  static const Color lightBlueBg = Color(0xFFE3F8FF); // Latar belakang biru sangat muda
+  static const Color lightBlueBg = Color(
+    0xFFE3F8FF,
+  ); // Latar belakang biru sangat muda
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +30,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         // Font modern
         textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
-        
+
         // Latar belakang utama
         scaffoldBackgroundColor: Colors.white,
 

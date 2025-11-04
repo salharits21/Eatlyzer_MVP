@@ -1,37 +1,63 @@
-// === lib/screens/confirmation_screen.dart ===
-
 import 'package:flutter/material.dart';
-import 'package:eatlyzer_frontend/main.dart'; // Import main.dart untuk akses warna
+import 'package:eatlyzer_frontend/main.dart';
 
 class ConfirmationScreen extends StatelessWidget {
   const ConfirmationScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Menerima argumen (hasil tebakan AI) dari layar sebelumnya
+    final Map<String, dynamic> nutritionData =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+
     final String foodName =
-        ModalRoute.of(context)!.settings.arguments as String;
+        nutritionData['foodName'] ?? 'Makanan Tidak Dikenali';
+    final String imageUrl =
+        nutritionData['imageUrl'] ?? 'https://placehold.co/600x400?text=Error';
+    final int calories = (nutritionData['calories'] ?? 0).round();
+    final int protein = (nutritionData['protein'] ?? 0).round();
+    final int carbs = (nutritionData['carbs'] ?? 0).round();
+    final int fat = (nutritionData['fat'] ?? 0).round();
+
+    final String nutritionInfo =
+        'Perkiraan: $calories Kkal, $protein g Protein, $carbs g Karbo, $fat g Lemak';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Konfirmasi Makanan'),
-      ),
+      appBar: AppBar(title: const Text('Konfirmasi Makanan')),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Placeholder untuk gambar
             Container(
               height: 250,
               decoration: BoxDecoration(
                 color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(
-                Icons.image_search,
-                size: 100,
-                color: Colors.grey[400],
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      Icons.image_not_supported,
+                      size: 100,
+                      color: Colors.grey[400],
+                    );
+                  },
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -48,13 +74,11 @@ class ConfirmationScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Perkiraan: 450 Kkal, 15g Protein, 50g Karbo, 20g Lemak', // Data palsu
+              nutritionInfo,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey[800]),
             ),
-            const Spacer(), // Mendorong tombol ke bawah
-
-            // Tombol Aksi
+            const Spacer(),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: MyApp.primaryColor,
@@ -65,9 +89,6 @@ class ConfirmationScreen extends StatelessWidget {
                 ),
               ),
               onPressed: () {
-                // TODO: Simpan data ke database
-                
-                // Kembali ke dashboard (menghapus tumpukan layar scan & konfirmasi)
                 Navigator.popUntil(context, ModalRoute.withName('/'));
               },
               child: const Text(
@@ -86,8 +107,7 @@ class ConfirmationScreen extends StatelessWidget {
                 side: BorderSide(color: Colors.grey[300]!),
               ),
               onPressed: () {
-                // Pindah ke layar pencarian manual
-                Navigator.pushReplacementNamed(context, '/search');
+                Navigator.pop(context);
               },
               child: const Text(
                 'Bukan, Cari Manual',
