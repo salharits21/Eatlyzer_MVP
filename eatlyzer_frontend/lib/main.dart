@@ -6,6 +6,9 @@ import 'package:eatlyzer_frontend/screens/confirmation_screen.dart';
 import 'package:eatlyzer_frontend/screens/dashboard_screen.dart';
 import 'package:eatlyzer_frontend/screens/manual_search_screen.dart';
 import 'package:eatlyzer_frontend/screens/scan_screen.dart';
+import 'package:eatlyzer_frontend/screens/login_screen.dart';
+import 'package:eatlyzer_frontend/screens/register_screen.dart';
+import 'package:eatlyzer_frontend/screens/splash_screen.dart';
 
 // Ganti 'nama_proyek_anda' dengan nama proyek Anda
 
@@ -20,7 +23,7 @@ class MyApp extends StatelessWidget {
   static const Color primaryColor = Color(0xFF00B0FF); // Sky Blue
   static const Color lightBlueBg = Color(
     0xFFE3F8FF,
-  ); // Latar belakang biru sangat muda
+  ); // Latar belakang biru langit
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +58,10 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => const DashboardScreen(),
+        '/': (context) => const SplashScreen(), // <-- Rute awal baru
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/dashboard': (context) => const DashboardScreen(), // <-- Dashboard punya rute sendiri
         '/scan': (context) => const ScanScreen(),
         '/confirm': (context) => const ConfirmationScreen(),
         '/search': (context) => const ManualSearchScreen(),
