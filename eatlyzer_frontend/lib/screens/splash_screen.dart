@@ -48,7 +48,7 @@ class _SplashScreenState extends State<SplashScreen> {
             Icon(Icons.food_bank_rounded, size: 100, color: MyApp.primaryColor),
             SizedBox(height: 20),
             Text(
-              'NutriScan',
+              'EatLyzer',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
