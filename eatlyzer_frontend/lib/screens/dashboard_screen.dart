@@ -3,6 +3,9 @@
 import 'dart:convert';
 
 import 'package:eatlyzer_frontend/services/secure_storage_service.dart';
+import 'dart:convert';
+
+import 'package:eatlyzer_frontend/services/secure_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:eatlyzer_frontend/main.dart'; // Import main.dart untuk akses warna
 import 'package:eatlyzer_frontend/widgets/food_list_item.dart';
@@ -129,91 +132,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: Text('Hi, $_userName!'),
         actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.person_outline), 
-            offset: const Offset(0, 56), 
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              // Tambahkan border tipis agar terlihat di atas background putih
-              side: BorderSide(color: Colors.grey[200]!) 
-            ),
-            color: Colors.white, // <-- SET LATAR BELAKANG POPUP
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              // Menu Item: Profile Info (Header)
-              PopupMenuItem<String>(
-                enabled: false,
-                padding: EdgeInsets.zero,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16.0),
-                  // Kita tidak perlu warna lagi di sini, karena 'color' di atas
-                  // sudah mengatur seluruh popup.
-                  child: Column(
-                    children: [
-                      const CircleAvatar(
-                        radius: 30,
-                        backgroundColor: MyApp.primaryColor,
-                        child: Icon(Icons.person, size: 36, color: Colors.white),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        _userName,
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black), // Pastikan warna teks
-                      ),
-                      const SizedBox(height: 4),
-                      
-                      // !! TAMBAHAN EMAIL DI SINI !!
-                      Text(
-                        _userEmail,
-                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const PopupMenuDivider(), 
-
-              // ITEM BARU: SETTING TARGET
-              PopupMenuItem<String>(
-                value: 'goals',
-                child: Row(
-                  children: const [
-                    Icon(Icons.track_changes, color: Colors.blue), // Ikon target
-                    SizedBox(width: 8),
-                    Text('Atur Target Nutrisi'),
-                  ],
-                ),
-              ),
-
-              // Menu Item: Logout
-              PopupMenuItem<String>(
-                value: 'logout',
-                child: Row(
-                  children: const [
-                    Icon(Icons.logout, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text(
-                      'Logout',
-                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            onSelected: (String value) {
-              if (value == 'logout') {
-                _handleLogout();
-              } else if (value == 'goals') {
-                // Navigasi ke layar setting
-                Navigator.push(
-                  context, 
-                  MaterialPageRoute(builder: (context) => const GoalSettingScreen())
-                ).then((_) {
-                  // Refresh dashboard saat kembali dari setting
-                  _fetchDashboardData();
-                });
-              }
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            onPressed: () {
+              // TODO: Navigasi ke halaman profil
             },
           ),
         ],

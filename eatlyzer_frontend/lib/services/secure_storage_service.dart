@@ -33,7 +33,11 @@ class SecureStorageService {
   // Helper untuk base URL
   Future<String> getBaseUrl() async {
     // !! Ganti IP default ini dengan IP Anda
+<<<<<<< HEAD
     final String defaultIP = '192.168.56.1'; 
+=======
+    final String defaultIP = '10.0.2.2'; 
+>>>>>>> b56263eeef72ef8fbe987aedf0db23ef082a9621
     final String? storedIP = await readIP();
     return 'http://${storedIP ?? defaultIP}:3000';
   }

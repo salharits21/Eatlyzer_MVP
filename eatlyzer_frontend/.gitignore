@@ -1,3 +1,6 @@
+# Environment files
+eatlyzer_backend/.env
+
 # Miscellaneous
 *.class
 *.log
