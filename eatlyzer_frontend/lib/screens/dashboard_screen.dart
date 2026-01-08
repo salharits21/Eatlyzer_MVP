@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:eatlyzer_frontend/main.dart'; // Import main.dart untuk akses warna
 import 'package:eatlyzer_frontend/widgets/food_list_item.dart';
 import 'package:eatlyzer_frontend/widgets/nutrition_card.dart';
+import 'package:eatlyzer_frontend/screens/goal_setting_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart'; // Untuk format waktu
 
@@ -173,6 +174,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const PopupMenuDivider(), 
 
+              // ITEM BARU: SETTING TARGET
+              PopupMenuItem<String>(
+                value: 'goals',
+                child: Row(
+                  children: const [
+                    Icon(Icons.track_changes, color: Colors.blue), // Ikon target
+                    SizedBox(width: 8),
+                    Text('Atur Target Nutrisi'),
+                  ],
+                ),
+              ),
+
               // Menu Item: Logout
               PopupMenuItem<String>(
                 value: 'logout',
@@ -191,6 +204,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onSelected: (String value) {
               if (value == 'logout') {
                 _handleLogout();
+              } else if (value == 'goals') {
+                // Navigasi ke layar setting
+                Navigator.push(
+                  context, 
+                  MaterialPageRoute(builder: (context) => const GoalSettingScreen())
+                ).then((_) {
+                  // Refresh dashboard saat kembali dari setting
+                  _fetchDashboardData();
+                });
               }
             },
           ),

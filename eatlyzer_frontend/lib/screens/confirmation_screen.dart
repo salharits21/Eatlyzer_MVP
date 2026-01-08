@@ -46,6 +46,46 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
 
       // 3. Proses respon
       if (response.statusCode == 201) {
+        final responseData = json.decode(response.body);
+        // === LOGIKA NOTIFIKASI POP UP BARU ===
+        if (responseData['alert'] != null) {
+          final alert = responseData['alert'];
+          
+          // Tampilkan Dialog sebelum pindah halaman
+          if (mounted) {
+            await showDialog(
+              context: context,
+              barrierDismissible: false, // User harus klik tombol OK
+              builder: (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                title: Row(
+                  children: [
+                    Icon(
+                      alert['type'] == 'success' ? Icons.check_circle : Icons.warning_amber_rounded,
+                      color: alert['type'] == 'success' ? Colors.green : Colors.red,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(alert['type'] == 'success' ? 'Target Tercapai!' : 'Peringatan!'),
+                  ],
+                ),
+                content: Text(
+                  alert['message'], 
+                  style: const TextStyle(fontSize: 16),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(ctx).pop(); // Tutup dialog
+                    },
+                    child: const Text('Mengerti', style: TextStyle(fontWeight: FontWeight.bold)),
+                  )
+                ],
+              ),
+            );
+          }
+        }
+        // === AKHIR LOGIKA POP UP ===
         if (mounted) {
           // Kembali ke dashboard dan beri tahu bahwa ada data baru
           Navigator.of(context).popUntil(

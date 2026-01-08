@@ -25,9 +25,12 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-// --- Konfigurasi Gemini & Multer (Sudah Ada) ---
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const visionModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }); 
+// ================== OPENAI ==================
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// ================== MULTER ==================
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
@@ -185,21 +188,15 @@ app.post('/analyze', authMiddleware, upload.single('image'), async (req, res) =>
 
   try {
     const prompt = `
-      INI UNTUK SIMULASI DEMO.
-      Abaikan apa pun yang ada di dalam gambar.
-      Tugas Anda adalah SELALU mengembalikan data makanan, bahkan jika gambar itu bukan makanan (seperti pemandangan atau gambar virtual).
-      
-      Pilih satu nama makanan yang umum secara acak (misalnya: 'Nasi Goreng', 'Ayam Bakar', 'Salad Buah', 'Burger Keju', 'Sepiring Apel').
-      Berikan perkiraan nutrisi yang wajar untuk makanan acak tersebut.
-      
-      Kembalikan HANYA sebuah objek JSON dengan format berikut, tanpa teks tambahan atau markdown ('''json ... '''):
+      Return ONLY valid JSON:
       {
-        "foodName": "Nama Makanan Acak",
-        "calories": 0, 
-        "protein": 0,
-        "carbs": 0,
-        "fat": 0
+      "foodName": "",
+      "calories": 0,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0
       }
+      Estimate nutrition realistically.
     `;
 
     const imagePart = bufferToGenerativePart(req.file.buffer, 'image/jpeg');
@@ -207,7 +204,7 @@ app.post('/analyze', authMiddleware, upload.single('image'), async (req, res) =>
     const result = await visionModel.generateContent([prompt, imagePart]);
     const responseText = result.response.text();
 
-    console.log('Respon Simulasi dari Gemini:', responseText);
+    console.log('Respon dari Gemini:', responseText);
 
     const cleanedText = responseText
       .replace(/```json/g, '')
@@ -233,38 +230,70 @@ app.post('/analyze', authMiddleware, upload.single('image'), async (req, res) =>
 // 4. ENDPOINT JURNAL: TAMBAH ENTRI BARU
 // ===============================================
 app.post('/journal', authMiddleware, async (req, res) => {
-  // 1. Ambil data user dari token (via middleware)
   const { userId } = req.user;
-
-  // 2. Ambil data makanan dari body request
-  // (Data ini dikirim dari confirmation_screen.dart)
   const { foodName, imageUrl, calories, protein, carbs, fat } = req.body;
 
-  // 3. Validasi dasar
-  if (
-    !foodName ||
-    calories == null ||
-    protein == null ||
-    carbs == null ||
-    fat == null
-  ) {
+  if (!foodName || calories == null) {
     return res.status(400).json({ error: 'Data makanan tidak lengkap.' });
   }
 
   try {
-    // 4. Simpan ke database
+    // 1. Simpan makanan (Kode Lama)
     const newEntry = await pool.query(
       `INSERT INTO food_entries (user_id, food_name, image_url, calories, protein, carbs, fat)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING *`, // RETURNING * mengembalikan data yg baru di-insert
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
       [userId, foodName, imageUrl, calories, protein, carbs, fat]
     );
 
-    // 5. Kirim respon sukses (201 Created)
+    // --- LOGIKA BARU: Cek Target/Batas ---
+    
+    // 2. Hitung total hari ini setelah penambahan
+    const summaryQuery = await pool.query(
+      `SELECT 
+         COALESCE(SUM(calories), 0) as total_calories,
+         COALESCE(SUM(protein), 0) as total_protein,
+         COALESCE(SUM(carbs), 0) as total_carbs,
+         COALESCE(SUM(fat), 0) as total_fat
+       FROM food_entries 
+       WHERE user_id = $1 AND DATE(created_at) = CURRENT_DATE`,
+      [userId]
+    );
+    const summary = summaryQuery.rows[0];
+
+    // 3. Ambil target user
+    const goalQuery = await pool.query('SELECT * FROM user_goals WHERE user_id = $1', [userId]);
+    const goal = goalQuery.rows[0];
+
+    let alertMessage = null;
+    let alertType = null; // 'success' (Target Reached) atau 'warning' (Limit Exceeded)
+
+    if (goal) {
+      // Logika CUTTING (Batas/Limit)
+      if (goal.goal_type === 'limit') {
+        if (summary.total_calories > goal.calories_goal) {
+          alertType = 'warning';
+          alertMessage = 'Peringatan! Asupan kalori Anda telah melewati batas harian.';
+        } 
+        // Anda bisa menambahkan 'else if' untuk protein/carbs/fat jika ingin spesifik
+      } 
+      // Logika BULKING (Target)
+      else if (goal.goal_type === 'target') {
+        // Cek apakah baru saja mencapai target (Logic sederhana: jika total >= target)
+        // Idealnya kita cek apakah 'total - current_input' < target, tapi ini cukup untuk MVP
+        if (summary.total_calories >= goal.calories_goal) {
+          alertType = 'success';
+          alertMessage = 'Selamat! Anda telah mencapai target kalori harian.';
+        }
+      }
+    }
+
+    // 4. Kirim respon + Alert Info
     res.status(201).json({
       message: 'Data berhasil disimpan',
       entry: newEntry.rows[0],
+      alert: alertMessage ? { type: alertType, message: alertMessage } : null
     });
+
   } catch (error) {
     console.error('Error saat menyimpan ke jurnal:', error);
     res.status(500).json({ error: 'Terjadi kesalahan server.' });
@@ -331,4 +360,48 @@ app.get('/journal/today', authMiddleware, async (req, res) => {
 // --- Server Start ---
 app.listen(port, '0.0.0.0', () => { // <-- Tambahkan '0.0.0.0' agar bisa diakses dari HP
   console.log(`Server running on http://0.0.0.0:${port}`);
+});
+
+// ===============================================
+// 6. ENDPOINT GOALS: SET/UPDATE TARGET
+// ===============================================
+app.post('/user/goals', authMiddleware, async (req, res) => {
+  const { userId } = req.user;
+  const { goalType, calories, protein, carbs, fat } = req.body;
+
+  try {
+    // Upsert (Insert jika belum ada, Update jika sudah ada)
+    const query = `
+      INSERT INTO user_goals (user_id, goal_type, calories_goal, protein_goal, carbs_goal, fat_goal)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (user_id) 
+      DO UPDATE SET 
+        goal_type = EXCLUDED.goal_type,
+        calories_goal = EXCLUDED.calories_goal,
+        protein_goal = EXCLUDED.protein_goal,
+        carbs_goal = EXCLUDED.carbs_goal,
+        fat_goal = EXCLUDED.fat_goal
+      RETURNING *;
+    `;
+    
+    const result = await pool.query(query, [userId, goalType, calories, protein, carbs, fat]);
+    res.json({ message: 'Target berhasil disimpan', goal: result.rows[0] });
+  } catch (error) {
+    console.error('Error setting goals:', error);
+    res.status(500).json({ error: 'Gagal menyimpan target.' });
+  }
+});
+
+// ===============================================
+// 7. ENDPOINT GOALS: GET TARGET (Untuk ditampilkan di UI)
+// ===============================================
+app.get('/user/goals', authMiddleware, async (req, res) => {
+  const { userId } = req.user;
+  try {
+    const result = await pool.query('SELECT * FROM user_goals WHERE user_id = $1', [userId]);
+    // Jika belum ada setting, kembalikan default null
+    res.json(result.rows[0] || null);
+  } catch (error) {
+    res.status(500).json({ error: 'Gagal mengambil data target.' });
+  }
 });
